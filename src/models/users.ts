@@ -1,19 +1,11 @@
 /**
- * User interface representing a customer in the IVRClaimAssist system.
- * Contains information needed for user identification and verification.
+ * Represents a user (caller) in the IVRClaimAssist system.
+ * Matches structure in Firestore `users` collection.
  */
 export interface User {
-  id: string;             // User ID
-  phone: string;          // Phone number (E.164 format)
-  firstName: string;      // First name
-  lastName: string;       // Last name
-  email?: string;         // Optional email
-  mailingAddress: {       // Mailing address for verification
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  createdAt: Date;        // User creation timestamp
-  updatedAt: Date;        // Last update timestamp
+  phoneNumber: string;        // Used as doc ID and for matching
+  fullName: string;           // Full name of the user
+  email?: string;             // Optional email
+  mailingAddress: string;     // Full address as a string
+  verified: boolean;          // Voice verification flag
 }
