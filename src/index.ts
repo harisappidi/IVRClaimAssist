@@ -21,6 +21,11 @@ const port = process.env.PORT || 3000;
 // Middleware to parse incoming JSON requests
 app.use(express.json());
 
+// Root route handler
+app.get('/', (req, res) => {
+  res.send('IVRClaimAssist API is running.');
+});
+
 // Placeholder route for Twilio webhook
 app.post('/twilio-webhook', (req, res) => {
   res.send('Twilio webhook endpoint');
