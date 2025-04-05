@@ -1,36 +1,24 @@
 /**
- * RepairClaim interface representing a vehicle repair claim in the system.
- * Contains all relevant information about a claim and its current status.
+ * Represents a single status update in the repair claim's lifecycle.
  */
-export interface RepairClaim {
-  id: string;             // Claim ID
-  userId: string;         // Reference to user ID
-  vehicleInfo: {
-    make: string;         // Vehicle make
-    model: string;        // Vehicle model
-    year: number;         // Vehicle year
-    licensePlate?: string; // Optional license plate
-  };
-  rentalInfo: {
-    rentalCompany: string; // Rental company name
-    reservationNumber?: string; // Optional reservation number
-  };
-  status: ClaimStatus;    // Current status of the claim
-  statusDetails?: string; // Optional additional details about the status
-  estimatedCompletionDate?: Date; // Optional estimated completion date
-  createdAt: Date;        // Claim creation timestamp
-  updatedAt: Date;        // Last update timestamp
+export interface ClaimUpdate {
+  date: string;     // ISO 8601 string, e.g., "2025-04-01T09:00:00Z"
+  status: string;   // e.g., "In repair", "Completed"
+  notes: string;    // e.g., "Parts ordered, repair in progress"
 }
 
 /**
- * Enum defining possible states of a repair claim.
- * Used for consistent status representation throughout the system.
+ * Represents a vehicle repair claim stored in Firestore under `claims`.
  */
-export enum ClaimStatus {
-  SUBMITTED = "submitted",
-  INSPECTION = "inspection",
-  PARTS_ORDERED = "parts_ordered",
-  IN_REPAIR = "in_repair",
-  COMPLETED = "completed",
-  CANCELLED = "cancelled"
+export interface RepairClaim {
+  claimId: string;             // Unique claim ID (e.g., "CLM12345")
+  customerName: string;        // Full name of the customer
+  phoneNumber: string;         // Caller’s phone number
+  vehicleInfo: string;         // e.g., "2020 Toyota Camry"
+  damageType: string;          // e.g., "Rear bumper damage"
+  status: string;              // Current status (e.g., "In repair")
+  estimatedCompletion: string; // Date string, e.g., "2025-04-10"
+  lastUpdated: string;         // ISO timestamp, e.g., "2025-04-03T14:30:00Z"
+  rentalCompany: string;       // e.g., "Enterprise"
+  updates: ClaimUpdate[];      // History of status updates
 }
