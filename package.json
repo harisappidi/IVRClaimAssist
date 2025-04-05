@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/twilio": "^3.19.2",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "firebase-admin": "^13.2.0",

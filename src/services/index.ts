@@ -5,3 +5,4 @@
 export * from './userService';
 export * from './claimService';
 export * from './callFlowService';
+export * from './twilioService';
