@@ -37,3 +37,58 @@ These repetitive steps waste time—especially when the customer is on a **deadl
 | Data Access         | Claim & repair updates from Firestore (or proxy API) |
 
 ---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm (Node Package Manager)
+- ngrok (for local webhook tunneling)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd IVRClaimAssist
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   - Copy `.env.example` to `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Fill in the required values in the `.env` file.
+
+### Running the Project
+
+1. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+2. Expose the local server to the internet using ngrok:
+   ```bash
+   ngrok http 3000
+   ```
+   - Note the public URL provided by ngrok and configure it in your Twilio webhook settings.
+
+### Project Structure
+
+- `src/index.ts`: Entry point of the application.
+- `.env`: Environment variables (not committed to version control).
+- `.env.example`: Sample environment variables file.
+
+### Features
+
+- Handles incoming POST requests from Twilio.
+- Placeholder route for Twilio webhook.
+- Modular code structure for scalability.
+
+---
