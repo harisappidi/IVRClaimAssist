@@ -14,4 +14,5 @@ export interface User {
   email?: string;             // Optional email
   mailingAddress: MailingAddress;     // Full address as a nested object
   verified: boolean;          // Voice verification flag
+  claimId?: string;           // Optional claim ID for tracking
 }
