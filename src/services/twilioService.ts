@@ -1,4 +1,4 @@
-import { VoiceResponse } from 'twilio/lib/twiml/VoiceResponse';
+import VoiceResponse = require('twilio/lib/twiml/VoiceResponse');
 import twilio from 'twilio';
 
 export class TwilioService {
@@ -19,7 +19,7 @@ export class TwilioService {
     }, 'Welcome to the Repair Claim Assistant. I can help you check the status of your repair claim.');
 
     response.gather({
-      input: 'dtmf speech',
+      input: ['dtmf', 'speech'],
       timeout: 3,
       numDigits: 1,
       action: '/ivr/collect-name',
@@ -38,13 +38,65 @@ export class TwilioService {
     const response = new this.twiml.VoiceResponse();
     
     response.gather({
-      input: 'speech',
+      input: ['speech'],
       timeout: 3,
-      action: '/ivr/collect-zipcode',
+      action: '/ivr/collect-street',
       hints: 'my name is',
     }).say({
       voice: 'Polly.Joanna',
     }, 'Please say your full name exactly as it appears on your claim.');
+
+    return response.toString();
+  }
+
+  /**
+   * Generates TwiML to collect user's street address
+   */
+  generateCollectStreet(): string {
+    const response = new this.twiml.VoiceResponse();
+    
+    response.gather({
+      input: ['speech'],
+      timeout: 5,
+      action: '/ivr/collect-city',
+      hints: 'my address is',
+    }).say({
+      voice: 'Polly.Joanna',
+    }, 'Please say your street address as it appears on your claim.');
+
+    return response.toString();
+  }
+
+  /**
+   * Generates TwiML to collect user's city
+   */
+  generateCollectCity(): string {
+    const response = new this.twiml.VoiceResponse();
+    
+    response.gather({
+      input: ['speech'],
+      timeout: 3,
+      action: '/ivr/collect-state',
+    }).say({
+      voice: 'Polly.Joanna',
+    }, 'Please say the name of your city.');
+
+    return response.toString();
+  }
+
+  /**
+   * Generates TwiML to collect user's state
+   */
+  generateCollectState(): string {
+    const response = new this.twiml.VoiceResponse();
+    
+    response.gather({
+      input: ['speech'],
+      timeout: 3,
+      action: '/ivr/collect-zipcode',
+    }).say({
+      voice: 'Polly.Joanna',
+    }, 'Please say the name of your state.');
 
     return response.toString();
   }
@@ -56,13 +108,13 @@ export class TwilioService {
     const response = new this.twiml.VoiceResponse();
     
     response.gather({
-      input: 'dtmf',
+      input: ['dtmf'],
       timeout: 3,
       numDigits: 5,
       action: '/ivr/verify-identity',
     }).say({
       voice: 'Polly.Joanna',
-    }, 'Please enter your 5-digit ZIP code using your keypad.');
+    }, 'Finally, please enter your 5-digit ZIP code using your keypad.');
 
     return response.toString();
   }

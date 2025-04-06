@@ -48,10 +48,14 @@ export class UserService {
       // Case insensitive name comparison
       const nameMatches = user.fullName.toLowerCase() === fullName.toLowerCase();
       
-      // ZIP code verification
-      const zipMatches = user.mailingAddress === mailingAddress;
+      // Full mailing address verification
+      const addressMatches = 
+        user.mailingAddress.street.toLowerCase() === mailingAddress.street.toLowerCase() &&
+        user.mailingAddress.city.toLowerCase() === mailingAddress.city.toLowerCase() &&
+        user.mailingAddress.state.toLowerCase() === mailingAddress.state.toLowerCase() &&
+        user.mailingAddress.zipCode === mailingAddress.zipCode; // ZIP codes should match exactly
       
-      return nameMatches && zipMatches;
+      return nameMatches && addressMatches;
     } catch (error) {
       console.error('Error verifying user identity:', error);
       return false;
