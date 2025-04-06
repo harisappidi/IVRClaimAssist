@@ -60,9 +60,8 @@ These repetitive steps waste time—especially when the customer is on a **deadl
    ```
 
 3. Set up environment variables:
-   - Copy `.env.example` to `.env`:
      ```bash
-     cp .env.example .env
+     touch .env
      ```
    - Fill in the required values in the `.env` file.
 
@@ -97,3 +96,6 @@ Team Name: VoiceHackers
 Track: AI/ML
 Harikrishna Sappidi
 Siva Sai Narayana Singh Udaya
+
+### Video Demonstration:
+https://www.loom.com/share/d06bd971d09e46128d67f670b621b132?sid=0a59647f-9f6b-4fbe-af2b-2e9d9c0e76f3
