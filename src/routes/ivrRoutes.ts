@@ -4,10 +4,23 @@ import { CallFlowService } from '../services/callFlowService';
 import { MailingAddress } from '../models/users';
 import twilio from 'twilio';
 import '../types/session';
+import pino from 'pino';
 
 const router = Router();
 const twilioService = new TwilioService();
 const callFlowService = new CallFlowService();
+
+// Initialize logger with better formatting
+const logger = pino({
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'HH:MM:ss.l',
+      ignore: 'pid,hostname'
+    }
+  }
+});
 
 // Twilio webhook validation middleware
 const validateRequest = twilio.webhook({ validate: process.env.NODE_ENV === 'production' });
@@ -18,8 +31,29 @@ const handleVerifyIdentity: RequestHandler = async (req, res) => {
   const phoneNumber = req.body.From;
   const { fullName, street, city, state } = req.session;
 
+  logger.info({
+    event: 'Verification attempt',
+    phoneNumber,
+    fullName,
+    address: { street, city, state, zipCode },
+    callSid: req.body.CallSid
+  }, 'Attempting to verify user');
+
   // Validate that all required information is present
   if (!fullName || !street || !city || !state || !zipCode) {
+    logger.warn({
+      event: 'Verification failed',
+      reason: 'Missing information',
+      callSid: req.body.CallSid,
+      missing: {
+        fullName: !fullName,
+        street: !street,
+        city: !city,
+        state: !state,
+        zipCode: !zipCode
+      }
+    }, 'Verification failed: Missing information');
+
     res.type('text/xml');
     res.send(twilioService.generateErrorResponse(
       'Some required information is missing. Please start over.'
@@ -42,6 +76,13 @@ const handleVerifyIdentity: RequestHandler = async (req, res) => {
       mailingAddress
     );
 
+    logger.info({
+      event: 'Verification result',
+      success,
+      phoneNumber,
+      callSid: req.body.CallSid
+    }, `Verification ${success ? 'succeeded' : 'failed'}: ${message}`);
+
     res.type('text/xml');
     if (success) {
       res.send(twilioService.generateClaimStatus(message));
@@ -49,6 +90,12 @@ const handleVerifyIdentity: RequestHandler = async (req, res) => {
       res.send(twilioService.generateErrorResponse(message));
     }
   } catch (error) {
+    logger.error({
+      event: 'Verification error',
+      error,
+      callSid: req.body.CallSid
+    }, 'Error during verification');
+
     console.error('Error in verify-identity route:', error);
     res.type('text/xml');
     res.send(twilioService.generateErrorResponse(
@@ -59,6 +106,12 @@ const handleVerifyIdentity: RequestHandler = async (req, res) => {
 
 // Route definitions
 router.post('/welcome', validateRequest, (req, res) => {
+  logger.info({
+    event: 'New call received',
+    from: req.body.From,
+    callSid: req.body.CallSid
+  }, 'Call started');
+
   // Clear any existing session data
   req.session.fullName = undefined;
   req.session.street = undefined;
@@ -70,12 +123,49 @@ router.post('/welcome', validateRequest, (req, res) => {
 });
 
 router.post('/collect-name', validateRequest, (req, res) => {
-  res.type('text/xml');
-  res.send(twilioService.generateCollectName());
+  const dtmfDigit = req.body.Digits;
+  const speechInput = req.body.SpeechResult;
+
+  logger.info({
+    event: 'Initial response received',
+    input: speechInput || dtmfDigit,
+    type: speechInput ? 'speech' : 'dtmf',
+    confidence: req.body.Confidence,
+    callSid: req.body.CallSid
+  }, `User responded: ${speechInput || dtmfDigit}`);
+
+  // Clean up speech input if present
+  const cleanedSpeechInput = speechInput ? 
+    speechInput.replace(/[.,!?]+$/, '').trim().toLowerCase() : '';
+
+  // Validate the initial response (either "1" or variations of "ready")
+  if ((dtmfDigit && dtmfDigit === '1') || 
+      (cleanedSpeechInput === 'ready')) {
+    res.type('text/xml');
+    res.send(twilioService.generateCollectName());
+  } else {
+    // If invalid input, use the new method to generate response
+    res.type('text/xml');
+    res.send(twilioService.generateInvalidInputResponse(
+      'I didn\'t understand your response. Let\'s try again.',
+      '/ivr/welcome'
+    ));
+  }
 });
 
 router.post('/collect-street', validateRequest, (req, res) => {
-  const fullName = req.body.SpeechResult;
+  const rawFullName = req.body.SpeechResult;
+  // Clean up the name by removing trailing punctuation and extra spaces
+  const fullName = rawFullName.replace(/[.,!?]+$/, '').trim();
+  
+  logger.info({
+    event: 'Full name received',
+    rawInput: rawFullName,
+    cleanedName: fullName,
+    confidence: req.body.Confidence,
+    callSid: req.body.CallSid
+  }, `User name: ${fullName}`);
+
   req.session.fullName = fullName;
   
   res.type('text/xml');
@@ -83,7 +173,17 @@ router.post('/collect-street', validateRequest, (req, res) => {
 });
 
 router.post('/collect-city', validateRequest, (req, res) => {
-  const street = req.body.SpeechResult;
+  const rawStreet = req.body.SpeechResult;
+  const street = rawStreet.replace(/[.,!?]+$/, '').trim();
+  
+  logger.info({
+    event: 'Street address received',
+    rawInput: rawStreet,
+    cleanedStreet: street,
+    confidence: req.body.Confidence,
+    callSid: req.body.CallSid
+  }, `Street address: ${street}`);
+
   req.session.street = street;
   
   res.type('text/xml');
@@ -91,7 +191,17 @@ router.post('/collect-city', validateRequest, (req, res) => {
 });
 
 router.post('/collect-state', validateRequest, (req, res) => {
-  const city = req.body.SpeechResult;
+  const rawCity = req.body.SpeechResult;
+  const city = rawCity.replace(/[.,!?]+$/, '').trim();
+  
+  logger.info({
+    event: 'City received',
+    rawInput: rawCity,
+    cleanedCity: city,
+    confidence: req.body.Confidence,
+    callSid: req.body.CallSid
+  }, `City: ${city}`);
+
   req.session.city = city;
   
   res.type('text/xml');
@@ -99,7 +209,17 @@ router.post('/collect-state', validateRequest, (req, res) => {
 });
 
 router.post('/collect-zipcode', validateRequest, (req, res) => {
-  const state = req.body.SpeechResult;
+  const rawState = req.body.SpeechResult;
+  const state = rawState.replace(/[.,!?]+$/, '').trim();
+  
+  logger.info({
+    event: 'State received',
+    rawInput: rawState,
+    cleanedState: state,
+    confidence: req.body.Confidence,
+    callSid: req.body.CallSid
+  }, `State: ${state}`);
+
   req.session.state = state;
   
   res.type('text/xml');

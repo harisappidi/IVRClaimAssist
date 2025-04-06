@@ -20,13 +20,21 @@ export class TwilioService {
 
     response.gather({
       input: ['dtmf', 'speech'],
-      timeout: 3,
+      timeout: 6,  // Increased from 5
       numDigits: 1,
       action: '/ivr/collect-name',
       hints: 'yes, ready, start',
     }).say({
       voice: 'Polly.Joanna',
     }, 'Press 1 or say ready when you\'re ready to begin.');
+
+    // Add a fallback response if Gather times out
+    response.say({
+      voice: 'Polly.Joanna',
+    }, 'I didn\'t receive your response. Please try again.');
+
+    // Redirect back to welcome to try again
+    response.redirect('/ivr/welcome');
 
     return response.toString();
   }
@@ -39,7 +47,7 @@ export class TwilioService {
     
     response.gather({
       input: ['speech'],
-      timeout: 3,
+      timeout: 7,  // Increased from 3
       action: '/ivr/collect-street',
       hints: 'my name is',
     }).say({
@@ -57,7 +65,7 @@ export class TwilioService {
     
     response.gather({
       input: ['speech'],
-      timeout: 5,
+      timeout: 8,  // Increased from 5
       action: '/ivr/collect-city',
       hints: 'my address is',
     }).say({
@@ -75,11 +83,19 @@ export class TwilioService {
     
     response.gather({
       input: ['speech'],
-      timeout: 3,
+      timeout: 7,  // Increased from 3
       action: '/ivr/collect-state',
     }).say({
       voice: 'Polly.Joanna',
     }, 'Please say the name of your city.');
+
+    // Add retry logic if no input is received
+    response.say({
+      voice: 'Polly.Joanna',
+    }, 'I didn\'t hear your city. Please try again.');
+    
+    // Redirect back to the same endpoint
+    response.redirect('/ivr/collect-city');
 
     return response.toString();
   }
@@ -92,11 +108,19 @@ export class TwilioService {
     
     response.gather({
       input: ['speech'],
-      timeout: 3,
+      timeout: 7,  // Increased from 3
       action: '/ivr/collect-zipcode',
     }).say({
       voice: 'Polly.Joanna',
     }, 'Please say the name of your state.');
+
+    // Add retry logic if no input is received
+    response.say({
+      voice: 'Polly.Joanna',
+    }, 'I didn\'t hear your state. Please try again.');
+    
+    // Redirect back to the same endpoint
+    response.redirect('/ivr/collect-state');
 
     return response.toString();
   }
@@ -109,12 +133,20 @@ export class TwilioService {
     
     response.gather({
       input: ['dtmf'],
-      timeout: 3,
+      timeout: 10,  // Increased from 3
       numDigits: 5,
       action: '/ivr/verify-identity',
     }).say({
       voice: 'Polly.Joanna',
     }, 'Finally, please enter your 5-digit ZIP code using your keypad.');
+
+    // Add retry logic if no input is received
+    response.say({
+      voice: 'Polly.Joanna',
+    }, 'I didn\'t receive your ZIP code. Please try again.');
+    
+    // Redirect back to the same endpoint
+    response.redirect('/ivr/collect-zipcode');
 
     return response.toString();
   }
@@ -154,6 +186,21 @@ export class TwilioService {
 
     response.hangup();
 
+    return response.toString();
+  }
+
+  /**
+   * Generates TwiML for invalid input with redirect
+   */
+  generateInvalidInputResponse(message: string, redirectUrl: string): string {
+    const response = new this.twiml.VoiceResponse();
+    
+    response.say({
+      voice: 'Polly.Joanna',
+    }, message);
+    
+    response.redirect(redirectUrl);
+    
     return response.toString();
   }
 }

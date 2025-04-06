@@ -81,14 +81,26 @@ export class ClaimService {
   }
 
   /**
+   * Formats phone number by removing +1 prefix if present
+   * @param phoneNumber - The phone number to format
+   * @returns Formatted phone number without +1 prefix
+   */
+  private formatPhoneNumber(phoneNumber: string): string {
+    return phoneNumber.replace(/^\+1/, '');
+  }
+
+  /**
    * Gets claims for a specific phone number
    * @param phoneNumber - The phone number of the customer
    * @returns Array of claims associated with the phone number
    */
   async getClaimsByPhoneNumber(phoneNumber: string): Promise<RepairClaim[]> {
     try {
+      // Remove +1 prefix if present before querying
+      const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
+      
       const claimsQuery = await claimsCollection
-        .where('phoneNumber', '==', phoneNumber)
+        .where('phoneNumber', '==', formattedPhoneNumber)
         .get();
       
       if (claimsQuery.empty) {

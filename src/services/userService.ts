@@ -6,14 +6,26 @@ import { User, MailingAddress } from '../models/users';
  */
 export class UserService {
   /**
+   * Formats phone number by removing +1 prefix if present
+   * @param phoneNumber - The phone number to format
+   * @returns Formatted phone number without +1 prefix
+   */
+  private formatPhoneNumber(phoneNumber: string): string {
+    return phoneNumber.replace(/^\+1/, '');
+  }
+
+  /**
    * Retrieves a user by their phone number
    * @param phoneNumber - The phone number in E.164 format
    * @returns The user document or null if not found
    */
   async getUserByPhoneNumber(phoneNumber: string): Promise<User | null> {
     try {
-      // Using the phone number as the document ID as specified
-      const userDoc = await usersCollection.doc(phoneNumber).get();
+      // Remove +1 prefix if present
+      const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
+      
+      // Using the formatted phone number as the document ID
+      const userDoc = await usersCollection.doc(formattedPhoneNumber).get();
       
       if (!userDoc.exists) {
         return null;
