@@ -40,27 +40,19 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// IVR Routes
-app.use('/ivr', ivrRoutes);
-
 // Root route handler
 app.get('/', (req, res) => {
   res.send('IVRClaimAssist API is running.');
 });
 
-// Placeholder route for Twilio webhook
-app.post('/twilio-webhook', (req, res) => {
-  res.send('Twilio webhook endpoint');
-});
+// IVR Routes
+app.use('/ivr', ivrRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Error:', err);
   res.status(500).send('Internal Server Error');
 });
-
-// Replace console.log with logger
-logger.info('Starting IVRClaimAssist server...');
 
 // Start the server
 app.listen(port, () => {
