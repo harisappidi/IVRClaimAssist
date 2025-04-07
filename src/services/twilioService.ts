@@ -161,12 +161,36 @@ export class TwilioService {
       voice: 'Polly.Joanna',
     }, statusMessage);
 
+    response.gather({
+      input: ['speech', 'dtmf'],
+      timeout: 5,
+      numDigits: 1,
+      action: '/ivr/repeat-status',
+      hints: 'yes, repeat, no'
+    }).say({
+      voice: 'Polly.Joanna',
+    }, 'Would you like me to repeat that information? Say yes or press 1 to repeat, or say no or press 2 to end the call.');
+
+    // If no input is received, end the call
     response.say({
       voice: 'Polly.Joanna',
     }, 'Thank you for using the Repair Claim Assistant. Goodbye!');
 
     response.hangup();
 
+    return response.toString();
+  }
+
+  /**
+   * Generates TwiML for ending the call with a goodbye message
+   */
+  generateEndCallResponse(): string {
+    const response = new this.twiml.VoiceResponse();
+    response.say({
+      voice: 'Polly.Joanna',
+    }, 'Thank you for using the Repair Claim Assistant. Goodbye!');
+    response.hangup();
+    
     return response.toString();
   }
 

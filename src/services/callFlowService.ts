@@ -1,6 +1,7 @@
 import { UserService } from './userService';
 import { ClaimService } from './claimService';
 import { MailingAddress } from '../models/users';
+import pino from 'pino';
 
 /**
  * Service for coordinating the IVR call flow, handling the sequence of:
@@ -11,10 +12,19 @@ import { MailingAddress } from '../models/users';
 export class CallFlowService {
   private userService: UserService;
   private claimService: ClaimService;
+  private logger: pino.Logger;
 
   constructor() {
     this.userService = new UserService();
     this.claimService = new ClaimService();
+    this.logger = pino({
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true
+        }
+      }
+    });
   }
 
   /**
@@ -28,7 +38,7 @@ export class CallFlowService {
     try {
       return await this.userService.verifyUserIdentity(phoneNumber, fullName, mailingAddress);
     } catch (error) {
-      console.error('Error in user verification flow:', error);
+      this.logger.error({ error, phoneNumber, fullName }, 'Error in user verification flow');
       return false;
     }
   }
@@ -61,7 +71,7 @@ export class CallFlowService {
       // If multiple claims found, provide a summary
       return `We found ${claims.length} claims associated with your phone number. Please contact customer service for detailed information about your claims.`;
     } catch (error) {
-      console.error('Error retrieving claim information:', error);
+      this.logger.error({ error, phoneNumber }, 'Error retrieving claim information');
       return "We're experiencing technical difficulties. Please try again later or contact customer service for assistance.";
     }
   }
@@ -97,7 +107,7 @@ export class CallFlowService {
         message: claimInfo
       };
     } catch (error) {
-      console.error('Error in verification and claim retrieval flow:', error);
+      this.logger.error({ error, phoneNumber, fullName }, 'Error in verification and claim retrieval flow');
       return {
         success: false,
         message: "We're sorry, but we encountered an error processing your request. Please try again later or contact customer service for assistance."

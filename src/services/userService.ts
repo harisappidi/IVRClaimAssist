@@ -1,10 +1,24 @@
 import { usersCollection } from '../config/firebase';
 import { User, MailingAddress } from '../models/users';
+import pino from 'pino';
 
 /**
  * Service for user-related operations in the IVR system
  */
 export class UserService {
+  private logger: pino.Logger;
+
+  constructor() {
+    this.logger = pino({
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true
+        }
+      }
+    });
+  }
+
   /**
    * Formats phone number by removing +1 prefix if present
    * @param phoneNumber - The phone number to format
@@ -28,12 +42,13 @@ export class UserService {
       const userDoc = await usersCollection.doc(formattedPhoneNumber).get();
       
       if (!userDoc.exists) {
+        this.logger.info({ phoneNumber: formattedPhoneNumber }, 'User not found');
         return null;
       }
       
       return userDoc.data() as User;
     } catch (error) {
-      console.error('Error retrieving user:', error);
+      this.logger.error({ error, phoneNumber }, 'Error retrieving user');
       throw new Error('Failed to retrieve user');
     }
   }
@@ -54,6 +69,7 @@ export class UserService {
       const user = await this.getUserByPhoneNumber(phoneNumber);
       
       if (!user) {
+        this.logger.info({ phoneNumber }, 'User not found during verification');
         return false; // User not found
       }
       
@@ -66,10 +82,16 @@ export class UserService {
         user.mailingAddress.city.toLowerCase() === mailingAddress.city.toLowerCase() &&
         user.mailingAddress.state.toLowerCase() === mailingAddress.state.toLowerCase() &&
         user.mailingAddress.zipCode === mailingAddress.zipCode; // ZIP codes should match exactly
+
+      this.logger.info({
+        phoneNumber,
+        nameMatches,
+        addressMatches
+      }, 'Verification attempt result');
       
       return nameMatches && addressMatches;
     } catch (error) {
-      console.error('Error verifying user identity:', error);
+      this.logger.error({ error, phoneNumber }, 'Error verifying user identity');
       return false;
     }
   }
@@ -82,8 +104,9 @@ export class UserService {
   async updateUserVerificationStatus(phoneNumber: string, verified: boolean): Promise<void> {
     try {
       await usersCollection.doc(phoneNumber).update({ verified });
+      this.logger.info({ phoneNumber, verified }, 'User verification status updated');
     } catch (error) {
-      console.error('Error updating user verification status:', error);
+      this.logger.error({ error, phoneNumber }, 'Error updating user verification status');
       throw new Error('Failed to update user verification status');
     }
   }
@@ -98,12 +121,13 @@ export class UserService {
       const user = await this.getUserByPhoneNumber(phoneNumber);
       
       if (!user || !user.claimId) {
+        this.logger.info({ phoneNumber }, 'No claim ID found for user');
         return null;
       }
       
       return user.claimId;
     } catch (error) {
-      console.error('Error retrieving user claim ID:', error);
+      this.logger.error({ error, phoneNumber }, 'Error retrieving user claim ID');
       throw new Error('Failed to retrieve user claim ID');
     }
   }

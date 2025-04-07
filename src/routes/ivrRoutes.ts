@@ -96,7 +96,6 @@ const handleVerifyIdentity: RequestHandler = async (req, res) => {
       callSid: req.body.CallSid
     }, 'Error during verification');
 
-    console.error('Error in verify-identity route:', error);
     res.type('text/xml');
     res.send(twilioService.generateErrorResponse(
       'We encountered an error processing your request. Please try again later.'
@@ -227,5 +226,37 @@ router.post('/collect-zipcode', validateRequest, (req, res) => {
 });
 
 router.post('/verify-identity', validateRequest, handleVerifyIdentity);
+
+router.post('/repeat-status', validateRequest, async (req, res) => {
+  const dtmfDigit = req.body.Digits;
+  const speechInput = req.body.SpeechResult;
+  
+  logger.info({
+    event: 'Repeat request received',
+    input: speechInput || dtmfDigit,
+    type: speechInput ? 'speech' : 'dtmf',
+    confidence: req.body.Confidence,
+    callSid: req.body.CallSid
+  }, 'User responded to repeat prompt');
+
+  // Clean up speech input
+  const cleanedSpeechInput = speechInput ? 
+    speechInput.replace(/[.,!?]+$/, '').trim().toLowerCase() : '';
+
+  // Check if user wants to repeat (yes/1) or end call (no/2)
+  const wantsRepeat = dtmfDigit === '1' || 
+    ['yes', 'repeat', 'again'].includes(cleanedSpeechInput);
+  
+  if (wantsRepeat) {
+    const phoneNumber = req.body.From;
+    const claim = await callFlowService.getClaimInfoForVerifiedUser(phoneNumber);
+    
+    res.type('text/xml');
+    res.send(twilioService.generateClaimStatus(claim));
+  } else {
+    res.type('text/xml');
+    res.send(twilioService.generateEndCallResponse());
+  }
+});
 
 export default router;

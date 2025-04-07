@@ -1,15 +1,25 @@
 import { claimsCollection } from '../config/firebase';
 import { RepairClaim, ClaimUpdate } from '../models/claims';
 import { UserService } from './userService';
+import pino from 'pino';
 
 /**
  * Service for claim-related operations in the IVR system
  */
 export class ClaimService {
   private userService: UserService;
+  private logger: pino.Logger;
 
   constructor() {
     this.userService = new UserService();
+    this.logger = pino({
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true
+        }
+      }
+    });
   }
 
   /**
@@ -19,16 +29,29 @@ export class ClaimService {
    */
   async getClaimById(claimId: string): Promise<RepairClaim | null> {
     try {
-      // Using getDoc instead of where clause for direct document retrieval
       const claimDoc = await claimsCollection.doc(claimId).get();
       
       if (!claimDoc.exists) {
+        this.logger.info({ claimId }, 'No claim found with ID');
         return null;
       }
       
-      return claimDoc.data() as RepairClaim;
+      const data = claimDoc.data();
+      const claim = {
+        ...data,
+        claimId: claimDoc.id,
+        updates: data?.updates || [],
+      } as RepairClaim;
+
+      this.logger.info({ 
+        claimId,
+        status: claim.status,
+        updatesCount: claim.updates.length
+      }, 'Retrieved claim data');
+      
+      return claim;
     } catch (error) {
-      console.error('Error retrieving claim:', error);
+      this.logger.error({ error, claimId }, 'Error retrieving claim');
       throw new Error('Failed to retrieve claim');
     }
   }
@@ -53,7 +76,7 @@ export class ClaimService {
       
       return sortedUpdates[0];
     } catch (error) {
-      console.error('Error retrieving latest status update:', error);
+      this.logger.error({ error, claimId }, 'Error retrieving latest status update');
       throw new Error('Failed to retrieve latest status update');
     }
   }
@@ -75,7 +98,7 @@ export class ClaimService {
       // Use the claim ID to retrieve the full claim
       return await this.getClaimById(claimId);
     } catch (error) {
-      console.error('Error retrieving claim by user phone:', error);
+      this.logger.error({ error, phoneNumber }, 'Error retrieving claim by user phone');
       throw new Error('Failed to retrieve claim by user phone');
     }
   }
@@ -96,20 +119,40 @@ export class ClaimService {
    */
   async getClaimsByPhoneNumber(phoneNumber: string): Promise<RepairClaim[]> {
     try {
-      // Remove +1 prefix if present before querying
       const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
       
+      this.logger.info({ 
+        originalPhone: phoneNumber,
+        formattedPhone: formattedPhoneNumber 
+      }, 'Searching claims by phone number');
+
       const claimsQuery = await claimsCollection
         .where('phoneNumber', '==', formattedPhoneNumber)
         .get();
       
       if (claimsQuery.empty) {
+        this.logger.info({ phoneNumber: formattedPhoneNumber }, 'No claims found for phone number');
         return [];
       }
       
-      return claimsQuery.docs.map(doc => doc.data() as RepairClaim);
+      const claims = claimsQuery.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          claimId: doc.id,
+          updates: data.updates || [],
+        } as RepairClaim;
+      });
+
+      this.logger.info({ 
+        phoneNumber: formattedPhoneNumber, 
+        claimsFound: claims.length,
+        claimIds: claims.map(c => c.claimId)
+      }, 'Retrieved claims for phone number');
+      
+      return claims;
     } catch (error) {
-      console.error('Error retrieving claims by phone number:', error);
+      this.logger.error({ error, phoneNumber }, 'Error retrieving claims by phone number');
       throw new Error('Failed to retrieve claims');
     }
   }
@@ -123,7 +166,7 @@ export class ClaimService {
     const today = new Date();
     const estimatedCompletion = claim.estimatedCompletion ? new Date(claim.estimatedCompletion) : null;
     
-    let formattedText = `Your claim for ${claim.vehicleInfo} is currently ${claim.status}. `;
+    let formattedText = `For claim number ${claim.claimId}, your ${claim.vehicleInfo} is currently ${claim.status}. `;
     
     if (estimatedCompletion && estimatedCompletion > today) {
       const daysRemaining = Math.ceil((estimatedCompletion.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
