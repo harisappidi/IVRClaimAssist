@@ -32,8 +32,6 @@ These repetitive steps waste time—especially when the customer is on a **deadl
 | Voice Platform      | Twilio Programmable Voice        |
 | Backend Server      | Node.js + Express.js             |
 | Database            | Firebase Firestore               |
-| Hosting (Optional)  | Render / Railway / Firebase Functions |
-| Identity Handling   | Voice prompts + Firestore match  |
 | Data Access         | Claim & repair updates from Firestore (or proxy API) |
 
 ---
@@ -91,11 +89,6 @@ These repetitive steps waste time—especially when the customer is on a **deadl
 - Modular code structure for scalability.
 
 ---
-### Team Info
-Team Name: VoiceHackers
-Track: AI/ML
-Harikrishna Sappidi
-Siva Sai Narayana Singh Udaya
 
 ### Video Demonstration:
 https://www.loom.com/share/d06bd971d09e46128d67f670b621b132?sid=0a59647f-9f6b-4fbe-af2b-2e9d9c0e76f3
